@@ -1,248 +1,292 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Fuel Efficiency Estimator (India)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: Arial; background: #f5f7fb; padding: 20px; }
-    .container {
-      max-width: 720px; margin: auto; background: white;
-      padding: 20px; border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    h2 { text-align: center; }
-    label { font-weight: bold; margin-top: 10px; display: block; }
-    select, input {
-      width: 100%; padding: 10px; margin: 6px 0 14px;
-      border-radius: 6px; border: 1px solid #ccc;
-    }
-    .slider-row { display:flex; justify-content:space-between; margin-bottom: 10px; }
-    .results {
-      margin-top: 20px; padding: 15px;
-      background: #eef3ff; border-radius: 10px;
-    }
-    .tag {
-      display: inline-block; padding: 5px 8px;
-      margin-top: 8px; border-radius: 6px;
-      font-size: 12px; background: #ddd;
-    }
-  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Fuel Efficiency Estimator</title>
+
+<style>
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #eef1f6;
+  padding: 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
+/* ---------- RESULT CARD ---------- */
+.result-card {
+  background: linear-gradient(135deg, #4c4cff, #7a4dff);
+  color: white;
+  padding: 25px;
+  border-radius: 20px;
+  margin-bottom: 25px;
+}
+
+.result-title {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.result-grid {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.metric {
+  flex: 1;
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+}
+
+.metric h1 {
+  font-size: 42px;
+  margin: 5px 0;
+}
+
+.tag {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.tag.warn { background: #f5e6a7; color: #a66b00; }
+.tag.info { background: rgba(255,255,255,0.2); }
+
+/* ---------- SECTIONS ---------- */
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #666;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+/* ---------- SLIDER ---------- */
+.slider-container {
+  margin-top: 10px;
+}
+
+.slider {
+  width: 100%;
+}
+
+.split-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+</style>
 </head>
 
 <body>
 
 <div class="container">
-  <h2>Fuel Efficiency Estimator 🇮🇳</h2>
 
-  <label>Engine Type</label>
-  <select id="engineType">
-    <option value="na">Petrol (NA)</option>
-    <option value="turbo">Petrol (Turbo)</option>
-    <option value="diesel">Diesel</option>
-  </select>
+<!-- RESULT -->
+<div class="result-card">
+  <div class="result-title">⚡ ESTIMATED MILEAGE</div>
 
-  <label>Engine Capacity (CC)</label>
-  <input type="number" id="cc" value="1200" step="100" min="800" max="5000">
-
-  <label>Transmission</label>
-  <select id="transmission">
-    <option value="manual">Manual</option>
-    <option value="amt">AMT</option>
-    <option value="cvt">CVT</option>
-    <option value="tc">Torque Converter</option>
-    <option value="dct">DCT</option>
-  </select>
-
-  <label>Vehicle Type</label>
-  <select id="vehicle">
-    <option value="hatch">Hatchback</option>
-    <option value="compactSedan">Compact Sedan</option>
-    <option value="compactSUV">Compact SUV</option>
-    <option value="sedan">Sedan</option>
-    <option value="suv">SUV</option>
-    <option value="luxurySedan">Luxury Sedan</option>
-    <option value="luxurySUV">Luxury SUV</option>
-  </select>
-
-  <label>Driving Style</label>
-  <select id="style">
-    <option value="gentle">Gentle</option>
-    <option value="normal">Normal</option>
-    <option value="aggressive">Aggressive</option>
-  </select>
-
-  <label>AC Usage</label>
-  <select id="ac">
-    <option value="off">Off</option>
-    <option value="normal">Normal</option>
-    <option value="max">Max</option>
-  </select>
-
-  <label>City Avg Speed (km/h)</label>
-  <input type="number" id="citySpeed" value="40" step="5">
-
-  <label>Highway Avg Speed (km/h)</label>
-  <input type="number" id="highwaySpeed" value="80" step="5">
-
-  <label>Driving Split</label>
-  <input type="range" id="citySlider" min="0" max="100" value="60">
-
-  <div class="slider-row">
-    <span><b>City:</b> <span id="cityVal">60</span>%</span>
-    <span><b>Highway:</b> <span id="highwayVal">40</span>%</span>
+  <div class="result-grid">
+    <div class="metric">
+      <div>🏙️ CITY</div>
+      <h1 id="cityOut">0</h1>
+      km/l
+    </div>
+    <div class="metric">
+      <div>🛣️ HIGHWAY</div>
+      <h1 id="highwayOut">0</h1>
+      km/l
+    </div>
+    <div class="metric">
+      <div>🔁 OVERALL</div>
+      <h1 id="overallOut">0</h1>
+      km/l
+    </div>
   </div>
 
-  <div class="results" id="results"></div>
+  <div id="tags"></div>
+</div>
+
+<!-- ENGINE -->
+<div class="card">
+  <div class="section-title">🔧 ENGINE & TRANSMISSION</div>
+
+  <div class="grid">
+    <select id="engine">
+      <option value="na">Petrol (NA)</option>
+      <option value="turbo">Petrol (Turbo)</option>
+      <option value="diesel">Diesel</option>
+    </select>
+
+    <input id="cc" value="1500" type="number" step="100">
+
+    <select id="trans">
+      <option value="manual">Manual</option>
+      <option value="cvt">CVT</option>
+      <option value="dct">DCT</option>
+    </select>
+
+    <select id="vehicle">
+      <option value="compactSUV">Compact SUV</option>
+      <option value="sedan">Sedan</option>
+      <option value="hatch">Hatchback</option>
+    </select>
+  </div>
+</div>
+
+<!-- DRIVING -->
+<div class="card">
+  <div class="section-title">🎮 DRIVING CONDITIONS</div>
+
+  <div class="grid">
+    <select id="style">
+      <option value="normal">Normal</option>
+      <option value="gentle">Gentle</option>
+      <option value="aggressive">Aggressive</option>
+    </select>
+
+    <select id="ac">
+      <option value="normal">Normal</option>
+      <option value="off">Off</option>
+      <option value="max">Max</option>
+    </select>
+
+    <input id="citySpeed" value="30" type="number" step="5">
+    <input id="highwaySpeed" value="90" type="number" step="5">
+  </div>
+</div>
+
+<!-- SPLIT -->
+<div class="card">
+  <div class="section-title">📊 DRIVING SPLIT</div>
+
+  <input type="range" id="slider" class="slider" value="75">
+
+  <div class="split-row">
+    <div>🏙️ City: <b id="cityShare">75</b>%</div>
+    <div>🛣️ Highway: <b id="highwayShare">25</b>%</div>
+  </div>
+</div>
+
 </div>
 
 <script>
 
-// --- INPUT NORMALIZATION ---
-const ccInput = document.getElementById("cc");
-ccInput.addEventListener("input", () => {
-  ccInput.value = Math.round(ccInput.value/100)*100;
-});
+// FACTORS
+const transFactor = {manual:1, cvt:0.88, dct:0.88};
+const weightFactor = {hatch:1.08, compactSUV:1, sedan:0.96};
+const styleFactor = {normal:1, gentle:1.1, aggressive:0.85};
+const acFactor = {off:1.05, normal:0.97, max:0.88};
 
-function round5(v){ return Math.round(v/5)*5; }
-
-const citySpeedInput = document.getElementById("citySpeed");
-const highwaySpeedInput = document.getElementById("highwaySpeed");
-
-citySpeedInput.addEventListener("input",()=> citySpeedInput.value=round5(citySpeedInput.value));
-highwaySpeedInput.addEventListener("input",()=> highwaySpeedInput.value=round5(highwaySpeedInput.value));
-
-// --- SLIDER ---
-const citySlider = document.getElementById("citySlider");
-const cityVal = document.getElementById("cityVal");
-const highwayVal = document.getElementById("highwayVal");
-
-let cityShare=60, highwayShare=40;
-
-function updateSlider(){
-  cityShare = +citySlider.value;
-  highwayShare = 100-cityShare;
-  cityVal.innerText=cityShare;
-  highwayVal.innerText=highwayShare;
-}
-updateSlider();
-
-// --- FACTORS ---
-function transmissionFactor(t){
-  return {manual:1, amt:0.95, cvt:0.88, tc:0.90, dct:0.88}[t];
+// MODELS
+function cityNA(cc,s){
+  let base = 4.5 + 0.22*s - 0.0015*s*s;
+  return base * Math.pow(1500/cc,0.6);
 }
 
-function weightFactor(t){
-  return {hatch:1.08, compactSedan:1.05, compactSUV:1,
-    sedan:0.96, suv:0.92, luxurySedan:0.86, luxurySUV:0.80}[t];
-}
-
-function styleFactor(t){
-  return {gentle:1.1, normal:1, aggressive:0.85}[t];
-}
-
-function acFactor(t){
-  return {off:1.05, normal:0.97, max:0.88}[t];
-}
-
-// --- MODELS ---
-
-// ✅ FIXED CITY MODEL
-function cityNA(cc,speed){
-  let base = 4.5 + 0.22*speed - 0.0015*speed*speed;
-  return base*Math.pow(1500/cc,0.6);
-}
-
-// NA highway
 function highwayNA(cc,s){
   return (36000/cc)/(1+0.012*s+0.00018*s*s);
 }
 
-// Turbo highway (refined)
 function highwayTurbo(cc,s){
   let base=(38000/cc)/(1+0.013*s+0.0002*s*s);
   let f = s<60?0.90 : s<75?1.05 : s<90?1.12 : s<105?0.92 : 0.82;
   return base*f;
 }
 
-// Turbo city penalties
 function turboFactor(s){
   if(s<25)return 1.45;
   if(s<35)return 1.30;
   if(s<50)return 1.15;
-  if(s<70)return 1.05;
-  if(s<90)return 1.00;
-  return 1.20;
+  return 1.05;
 }
 
 function turboCityLoad(cs){
   return 1+(cs/100)*0.25;
 }
 
-// Diesel
 function dieselFactor(cs,s){
-  return 1.55*(1+(cs/100)*0.15)*(s>95?0.95:1);
+  return 1.55*(1+(cs/100)*0.15);
 }
 
-// --- MAIN ---
-function calculate(){
+// MAIN
+function calc(){
 
-  updateSlider();
+  let cc=+cc.value;
+  let cs=+citySpeed.value;
+  let hs=+highwaySpeed.value;
+  let cityPct=+slider.value;
+  let highwayPct=100-cityPct;
 
-  let cc=+ccInput.value;
-  let engine=document.getElementById("engineType").value;
-  let trans=transmissionFactor(document.getElementById("transmission").value);
-  let weight=weightFactor(document.getElementById("vehicle").value);
-  let style=styleFactor(document.getElementById("style").value);
-  let ac=acFactor(document.getElementById("ac").value);
+  cityShare.innerText=cityPct;
+  highwayShare.innerText=highwayPct;
 
-  let cs=+citySpeedInput.value;
-  let hs=+highwaySpeedInput.value;
+  let city = cityNA(cc,cs);
+  let highway = engine.value==="turbo" ? highwayTurbo(cc,hs) : highwayNA(cc,hs);
 
-  let city=cityNA(cc,cs);
-
-  let highway = engine==="turbo" ? highwayTurbo(cc,hs) : highwayNA(cc,hs);
-
-  if(engine==="turbo"){
+  if(engine.value==="turbo"){
     city/=turboFactor(cs);
-    city/=turboCityLoad(cityShare);
+    city/=turboCityLoad(cityPct);
   }
 
-  if(engine==="diesel"){
-    city*=dieselFactor(cityShare,cs);
-    highway*=dieselFactor(cityShare,hs);
+  if(engine.value==="diesel"){
+    city*=dieselFactor(cityPct,cs);
+    highway*=dieselFactor(cityPct,hs);
   }
 
-  city*=trans*weight*style*ac;
-  highway*=trans*(0.7+0.3*weight)*style*ac;
+  city*=transFactor[trans.value]*weightFactor[vehicle.value]*styleFactor[style.value]*acFactor[ac.value];
+  highway*=transFactor[trans.value]*styleFactor[style.value]*acFactor[ac.value];
 
-  let overall=(city*cityShare+highway*highwayShare)/100;
+  let overall=(city*cityPct+highway*highwayPct)/100;
 
-  // safety clamp
   city=Math.max(5,city);
   highway=Math.max(6,highway);
   overall=Math.max(6,overall);
 
-  // engine insight
-  let tag="";
-  if(engine==="turbo"){
-    if(hs>=70&&hs<=90) tag="⚡ Turbo sweet spot";
-    else if(cs<30) tag="🚨 Turbo inefficient in traffic";
-  }
-  if(engine==="diesel") tag="💪 Diesel efficiency advantage";
-  if(engine==="na") tag="⚙️ Linear NA behavior";
+  cityOut.innerText=city.toFixed(1);
+  highwayOut.innerText=highway.toFixed(1);
+  overallOut.innerText=overall.toFixed(1);
 
-  document.getElementById("results").innerHTML=`
-    <h3>Estimated Mileage</h3>
-    <p><b>City:</b> ${city.toFixed(1)} km/l</p>
-    <p><b>Highway:</b> ${highway.toFixed(1)} km/l</p>
-    <p><b>Overall:</b> ${overall.toFixed(1)} km/l</p>
-    <div class="tag">${tag}</div>
+  tags.innerHTML = `
+    <span class="tag warn">⚠️ Moderate efficiency</span>
+    <span class="tag info">Calibrated Model</span>
   `;
 }
 
-// live update
-document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",calculate));
-calculate();
+document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",calc));
+
+calc();
 
 </script>
 

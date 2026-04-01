@@ -1,292 +1,420 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fuel Efficiency Estimator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fuel Efficiency Estimator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #eef1f6;
-  padding: 20px;
-}
+    :root {
+      --bg:          #eef1f7;
+      --card:        #ffffff;
+      --border:      #e2e6f0;
+      --primary:     #4f46e5;
+      --primary-d:   #7c3aed;
+      --text:        #1e1b4b;
+      --muted:       #6b7280;
+      --good-bg:     #dcfce7; --good: #16a34a;
+      --warn-bg:     #fef3c7; --warn: #b45309;
+      --bad-bg:      #fee2e2; --bad:  #dc2626;
+      --r: 14px;
+      --shadow: 0 2px 16px rgba(79,70,229,0.08);
+    }
 
-.container {
-  max-width: 900px;
-  margin: auto;
-}
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 24px 16px 56px;
+      color: var(--text);
+    }
 
-/* RESULT CARD */
-.result-card {
-  background: linear-gradient(135deg,#4c4cff,#7a4dff);
-  color: white;
-  padding: 25px;
-  border-radius: 20px;
-  margin-bottom: 25px;
-}
+    /* ── Header ─────────────────────────── */
+    .header { text-align: center; margin-bottom: 22px; }
+    .header .eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #eef2ff; color: var(--primary);
+      font-size: 11px; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; padding: 4px 12px;
+      border-radius: 99px; margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: clamp(1.35rem, 4vw, 1.8rem);
+      font-weight: 700; line-height: 1.2;
+    }
+    .header p { font-size: 13px; color: var(--muted); margin-top: 5px; }
 
-.result-grid {
-  display: flex;
-  gap: 15px;
-  margin-top: 20px;
-}
+    /* ── Wrap ────────────────────────────── */
+    .wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 
-.metric {
-  flex:1;
-  text-align:center;
-  background: rgba(255,255,255,0.1);
-  padding:20px;
-  border-radius:15px;
-}
+    /* ── Result card ─────────────────────── */
+    .result-card {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff; border-radius: var(--r);
+      padding: 22px 22px 18px;
+      box-shadow: 0 8px 32px rgba(79,70,229,0.28);
+    }
+    .result-eyebrow {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; opacity: .7;
+      margin-bottom: 16px;
+    }
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 420px) { .result-grid { grid-template-columns: 1fr; } }
 
-.metric h1 { font-size:40px; margin:5px 0; }
+    .metric {
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+      transition: transform .15s;
+    }
+    .metric:hover { transform: translateY(-2px); }
+    .metric.highlight {
+      background: rgba(255,255,255,.22);
+      border-color: rgba(255,255,255,.38);
+    }
+    .metric-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      opacity: .68; margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 2.2rem; font-weight: 700; line-height: 1;
+    }
+    .metric-unit { font-size: 11px; opacity: .6; margin-top: 4px; }
 
-/* CARDS */
-.card {
-  background:white;
-  padding:20px;
-  border-radius:15px;
-  margin-bottom:20px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.05);
-}
+    .result-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .rtag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 99px;
+      font-size: 12px; font-weight: 600;
+    }
+    .rtag.good { background: var(--good-bg); color: var(--good); }
+    .rtag.warn { background: var(--warn-bg); color: var(--warn); }
+    .rtag.bad  { background: var(--bad-bg);  color: var(--bad);  }
+    .rtag.info { background: rgba(255,255,255,.18); color: #fff;  }
 
-.section-title {
-  font-weight:bold;
-  margin-bottom:15px;
-  color:#666;
-}
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(5px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .result-card.bump { animation: fadeUp .25s ease; }
 
-.grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:15px;
-}
+    /* ── Input cards ─────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px 18px 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::after { content:''; flex:1; height:1px; background: var(--border); }
 
-input, select {
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
-}
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 500px) { .grid-2 { grid-template-columns: 1fr; } }
 
-/* SLIDER */
-.slider { width:100%; }
-.split-row { display:flex; justify-content:space-between; margin-top:10px; }
+    /* ── Field ───────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label {
+      font-size: 11px; font-weight: 600;
+      color: var(--muted); display: flex; align-items: center; gap: 5px;
+    }
 
-.tag {
-  display:inline-block;
-  padding:6px 12px;
-  border-radius:999px;
-  margin-top:10px;
-  font-size:13px;
-}
+    select, input[type="number"] {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 14px;
+      font-weight: 500; color: var(--text); background: #fff;
+      appearance: none; -webkit-appearance: none; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 11px center;
+      padding-right: 30px;
+    }
+    select:focus, input[type="number"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.13);
+    }
 
-.warn { background:#f5e6a7; color:#a66b00; }
-.info { background:rgba(255,255,255,0.2); }
-</style>
+    /* ── Slider ──────────────────────────── */
+    .split-pills {
+      display: flex; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 11px; border-radius: 99px;
+      font-size: 12px; font-weight: 600;
+    }
+    .pill.city    { background: #e0e7ff; color: #4338ca; }
+    .pill.highway { background: #d1fae5; color: #065f46; }
+
+    .split-track {
+      position: relative; height: 8px;
+      border-radius: 99px; overflow: hidden; margin-bottom: 10px;
+    }
+    .split-bar-city {
+      position:absolute; left:0; top:0; height:100%;
+      background: linear-gradient(90deg,#818cf8,#6366f1);
+      border-radius: 99px 0 0 99px; transition: width .15s;
+    }
+    .split-bar-hw {
+      position:absolute; right:0; top:0; height:100%;
+      background: linear-gradient(90deg,#34d399,#10b981);
+      border-radius: 0 99px 99px 0; transition: width .15s;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 8px; border-radius: 99px;
+      background: transparent; position: relative; z-index: 1;
+      cursor: pointer; outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px;
+      border-radius: 50%; background: #fff;
+      border: 2.5px solid var(--primary);
+      box-shadow: 0 2px 6px rgba(79,70,229,.25);
+      cursor: pointer; transition: box-shadow .15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      box-shadow: 0 2px 12px rgba(79,70,229,.4);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; border: 2.5px solid var(--primary);
+      box-shadow: 0 2px 6px rgba(79,70,229,.25); cursor: pointer;
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="container">
+<div class="header">
+  <div class="eyebrow">🇮🇳 India Calibrated</div>
+  <h1>Fuel Efficiency Estimator</h1>
+  <p>Real-world mileage based on your car, route &amp; habits</p>
+</div>
 
-<!-- RESULT -->
-<div class="result-card">
-  <div>⚡ ESTIMATED MILEAGE</div>
+<div class="wrap">
 
-  <div class="result-grid">
-    <div class="metric">
-      CITY
-      <h1 id="cityOut">0</h1>
-      km/l
+  <!-- Results -->
+  <div class="result-card" id="resultCard">
+    <div class="result-eyebrow">⚡ Estimated Mileage</div>
+    <div class="result-grid">
+      <div class="metric">
+        <div class="metric-label">🏙️ City</div>
+        <div class="metric-value" id="cityOut">—</div>
+        <div class="metric-unit">km/l</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">🛣️ Highway</div>
+        <div class="metric-value" id="highwayOut">—</div>
+        <div class="metric-unit">km/l</div>
+      </div>
+      <div class="metric highlight">
+        <div class="metric-label">🔁 Overall</div>
+        <div class="metric-value" id="overallOut">—</div>
+        <div class="metric-unit">km/l</div>
+      </div>
     </div>
-    <div class="metric">
-      HIGHWAY
-      <h1 id="highwayOut">0</h1>
-      km/l
+    <div class="result-tags" id="tags"></div>
+  </div>
+
+  <!-- Engine & Transmission -->
+  <div class="card">
+    <div class="card-title">🔧 Engine &amp; Transmission</div>
+    <div class="grid-2">
+      <div class="field">
+        <label>⚙️ Engine Type</label>
+        <select id="engine">
+          <option value="na">Petrol (NA)</option>
+          <option value="turbo">Petrol (Turbo)</option>
+          <option value="diesel">Diesel</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>📐 Engine Capacity (CC)</label>
+        <input id="cc" value="1500" type="number" step="100" min="800" max="5000">
+      </div>
+      <div class="field">
+        <label>🔄 Transmission</label>
+        <select id="trans">
+          <option value="manual">Manual / iMT</option>
+          <option value="amt">AMT / IVT</option>
+          <option value="cvt">CVT</option>
+          <option value="tc">Torque Converter</option>
+          <option value="dct">DCT</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>🚗 Vehicle Type</label>
+        <select id="vehicle">
+          <option value="hatch">Hatchback</option>
+          <option value="compactSedan">Compact Sedan</option>
+          <option value="compactSUV" selected>Compact SUV</option>
+          <option value="sedan">Sedan</option>
+          <option value="suv">SUV</option>
+          <option value="luxurySedan">Luxury Sedan</option>
+          <option value="luxurySUV">Luxury SUV</option>
+        </select>
+      </div>
     </div>
-    <div class="metric">
-      OVERALL
-      <h1 id="overallOut">0</h1>
-      km/l
+  </div>
+
+  <!-- Driving Conditions -->
+  <div class="card">
+    <div class="card-title">🛞 Driving Conditions</div>
+    <div class="grid-2">
+      <div class="field">
+        <label>🎮 Driving Style</label>
+        <select id="style">
+          <option value="gentle">Gentle</option>
+          <option value="normal" selected>Normal</option>
+          <option value="aggressive">Aggressive</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>❄️ AC Usage</label>
+        <select id="ac">
+          <option value="off">Off</option>
+          <option value="normal" selected>Normal</option>
+          <option value="max">Max</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>🏙️ City Avg Speed (km/h)</label>
+        <input id="citySpeed" value="30" type="number" step="5" min="5" max="100">
+      </div>
+      <div class="field">
+        <label>🛣️ Highway Avg Speed (km/h)</label>
+        <input id="highwaySpeed" value="90" type="number" step="5" min="40" max="140">
+      </div>
     </div>
   </div>
 
-  <div id="tags"></div>
-</div>
-
-<!-- ENGINE -->
-<div class="card">
-  <div class="section-title">ENGINE & TRANSMISSION</div>
-  <div class="grid">
-    <select id="engine">
-      <option value="na">Petrol (NA)</option>
-      <option value="turbo">Petrol (Turbo)</option>
-      <option value="diesel">Diesel</option>
-    </select>
-
-    <input id="cc" value="1500" type="number" step="100">
-
-    <select id="trans">
-      <option value="manual">Manual</option>
-      <option value="cvt">CVT</option>
-      <option value="dct">DCT</option>
-    </select>
-
-    <select id="vehicle">
-      <option value="compactSUV">Compact SUV</option>
-      <option value="sedan">Sedan</option>
-      <option value="hatch">Hatchback</option>
-    </select>
+  <!-- Driving Split -->
+  <div class="card">
+    <div class="card-title">📊 Driving Split</div>
+    <div class="split-pills">
+      <span class="pill city">🏙️ City: <span id="cityShare">75</span>%</span>
+      <span class="pill highway">🛣️ Highway: <span id="hwShare">25</span>%</span>
+    </div>
+    <div class="split-track">
+      <div class="split-bar-city" id="barCity" style="width:75%"></div>
+      <div class="split-bar-hw"   id="barHW"   style="width:25%"></div>
+    </div>
+    <input type="range" id="slider" value="75" min="0" max="100">
   </div>
-</div>
-
-<!-- DRIVING -->
-<div class="card">
-  <div class="section-title">DRIVING CONDITIONS</div>
-  <div class="grid">
-    <select id="style">
-      <option value="normal">Normal</option>
-      <option value="gentle">Gentle</option>
-      <option value="aggressive">Aggressive</option>
-    </select>
-
-    <select id="ac">
-      <option value="normal">Normal</option>
-      <option value="off">Off</option>
-      <option value="max">Max</option>
-    </select>
-
-    <input id="citySpeed" value="30" type="number" step="5">
-    <input id="highwaySpeed" value="90" type="number" step="5">
-  </div>
-</div>
-
-<!-- SPLIT -->
-<div class="card">
-  <div class="section-title">DRIVING SPLIT</div>
-
-  <input type="range" id="slider" class="slider" value="75">
-
-  <div class="split-row">
-    <div>City: <b id="cityShare">75</b>%</div>
-    <div>Highway: <b id="highwayShare">25</b>%</div>
-  </div>
-</div>
 
 </div>
 
 <script>
+  const $ = id => document.getElementById(id);
+  const engineEl     = $("engine");
+  const ccEl         = $("cc");
+  const transEl      = $("trans");
+  const vehicleEl    = $("vehicle");
+  const styleEl      = $("style");
+  const acEl         = $("ac");
+  const citySpeedEl  = $("citySpeed");
+  const hwSpeedEl    = $("highwaySpeed");
+  const sliderEl     = $("slider");
+  const cityShareEl  = $("cityShare");
+  const hwShareEl    = $("hwShare");
+  const barCityEl    = $("barCity");
+  const barHWEl      = $("barHW");
+  const cityOutEl    = $("cityOut");
+  const hwOutEl      = $("highwayOut");
+  const overallOutEl = $("overallOut");
+  const tagsEl       = $("tags");
+  const resultCard   = $("resultCard");
 
-// ELEMENTS
-const engine = document.getElementById("engine");
-const ccInput = document.getElementById("cc");
-const trans = document.getElementById("trans");
-const vehicle = document.getElementById("vehicle");
-const style = document.getElementById("style");
-const ac = document.getElementById("ac");
-const citySpeed = document.getElementById("citySpeed");
-const highwaySpeed = document.getElementById("highwaySpeed");
-const slider = document.getElementById("slider");
+  const transFactor  = { manual:1, amt:0.95, cvt:0.85, tc:0.90, dct:0.88 };
+  const weightFactor = { hatch:1.08, compactSedan:1.05, compactSUV:1, sedan:0.96, suv:0.92, luxurySedan:0.86, luxurySUV:0.80 };
+  const styleFactor  = { gentle:1.1, normal:1, aggressive:0.85 };
+  const acFactor     = { off:1.05, normal:0.97, max:0.88 };
 
-const cityOut = document.getElementById("cityOut");
-const highwayOut = document.getElementById("highwayOut");
-const overallOut = document.getElementById("overallOut");
+  function cityNA(cc,s)     { return (4.5+0.22*s-0.0015*s*s)*Math.pow(1500/cc,0.6); }
+  function hwNA(cc,s)       { return (36000/cc)/(1+0.012*s+0.00018*s*s); }
+  function hwTurbo(cc,s)    { let b=(38000/cc)/(1+0.013*s+0.0002*s*s); return b*(s<60?.90:s<75?1.05:s<90?1.12:s<105?.92:.82); }
+  function turboFactor(s)   { return s<25?1.45:s<35?1.30:s<50?1.15:s<70?1.05:s<90?1.00:s<105?1.10:1.25; }
+  function turboCityLoad(c) { return 1+(c/100)*0.25; }
+  function dieselFactor(c)  { return 1.55*(1+(c/100)*0.15); }
 
-const cityShareEl = document.getElementById("cityShare");
-const highwayShareEl = document.getElementById("highwayShare");
-const tags = document.getElementById("tags");
-
-// FACTORS
-const transFactor = {manual:1, cvt:0.88, dct:0.88};
-const weightFactor = {hatch:1.08, compactSUV:1, sedan:0.96};
-const styleFactor = {normal:1, gentle:1.1, aggressive:0.85};
-const acFactor = {off:1.05, normal:0.97, max:0.88};
-
-// MODELS
-function cityNA(cc,s){
-  let base = 4.5 + 0.22*s - 0.0015*s*s;
-  return base * Math.pow(1500/cc,0.6);
-}
-
-function highwayNA(cc,s){
-  return (36000/cc)/(1+0.012*s+0.00018*s*s);
-}
-
-function highwayTurbo(cc,s){
-  let base=(38000/cc)/(1+0.013*s+0.0002*s*s);
-  let f = s<60?0.90 : s<75?1.05 : s<90?1.12 : s<105?0.92 : 0.82;
-  return base*f;
-}
-
-function turboFactor(s){
-  if(s<25)return 1.45;
-  if(s<35)return 1.30;
-  if(s<50)return 1.15;
-  return 1.05;
-}
-
-function turboCityLoad(cs){
-  return 1+(cs/100)*0.25;
-}
-
-function dieselFactor(cs,s){
-  return 1.55*(1+(cs/100)*0.15);
-}
-
-// MAIN
-function calc(){
-
-  let cc = +ccInput.value;
-  let cs = +citySpeed.value;
-  let hs = +highwaySpeed.value;
-
-  let cityPct = +slider.value;
-  let highwayPct = 100 - cityPct;
-
-  cityShareEl.innerText = cityPct;
-  highwayShareEl.innerText = highwayPct;
-
-  let city = cityNA(cc,cs);
-  let highway = engine.value==="turbo" ? highwayTurbo(cc,hs) : highwayNA(cc,hs);
-
-  if(engine.value==="turbo"){
-    city/=turboFactor(cs);
-    city/=turboCityLoad(cityPct);
+  function zone(cs) {
+    if (cs<25) return { label:"🚨 Stop-go inefficiency", cls:"bad"  };
+    if (cs<60) return { label:"⚠️ Moderate efficiency",  cls:"warn" };
+    return             { label:"✅ Efficient cruising",   cls:"good" };
   }
 
-  if(engine.value==="diesel"){
-    city*=dieselFactor(cityPct,cs);
-    highway*=dieselFactor(cityPct,hs);
+  function roundCC(v)      { return Math.max(800, Math.min(5000, Math.round(v/100)*100)); }
+  function round5(v,mn,mx) { return Math.max(mn, Math.min(mx, Math.round(v/5)*5)); }
+
+  function calc() {
+    let cc   = +ccEl.value;
+    let cs   = +citySpeedEl.value;
+    let hs   = +hwSpeedEl.value;
+    let pct  = +sliderEl.value;
+    let hwPct = 100-pct;
+
+    cityShareEl.innerText = pct;
+    hwShareEl.innerText   = hwPct;
+    barCityEl.style.width = pct+'%';
+    barHWEl.style.width   = hwPct+'%';
+
+    let city = cityNA(cc,cs);
+    let hw   = engineEl.value==="turbo" ? hwTurbo(cc,hs) : hwNA(cc,hs);
+
+    if (engineEl.value==="turbo")  { city/=turboFactor(cs); city/=turboCityLoad(pct); }
+    if (engineEl.value==="diesel") { city*=dieselFactor(pct); hw*=dieselFactor(pct); }
+
+    let tf=transFactor[transEl.value], wf=weightFactor[vehicleEl.value];
+    let sf=styleFactor[styleEl.value], af=acFactor[acEl.value];
+
+    city *= tf*wf*sf*af;
+    hw   *= tf*(0.7+0.3*wf)*sf*af;
+
+    let overall=(city*pct+hw*hwPct)/100;
+    city=Math.max(5,city); hw=Math.max(6,hw); overall=Math.max(6,overall);
+
+    cityOutEl.innerText    = city.toFixed(1);
+    hwOutEl.innerText      = hw.toFixed(1);
+    overallOutEl.innerText = overall.toFixed(1);
+
+    const z=zone(cs);
+    tagsEl.innerHTML=`<span class="rtag ${z.cls}">${z.label}</span><span class="rtag info">Calibrated Model</span>`;
+
+    resultCard.classList.remove("bump");
+    void resultCard.offsetWidth;
+    resultCard.classList.add("bump");
   }
 
-  city*=transFactor[trans.value]*weightFactor[vehicle.value]*styleFactor[style.value]*acFactor[ac.value];
-  highway*=transFactor[trans.value]*styleFactor[style.value]*acFactor[ac.value];
+  ccEl.addEventListener("change",        ()=>{ ccEl.value=roundCC(+ccEl.value); calc(); });
+  citySpeedEl.addEventListener("change", ()=>{ citySpeedEl.value=round5(+citySpeedEl.value,5,100); calc(); });
+  hwSpeedEl.addEventListener("change",   ()=>{ hwSpeedEl.value=round5(+hwSpeedEl.value,40,140); calc(); });
+  [engineEl,transEl,vehicleEl,styleEl,acEl,sliderEl].forEach(el=>el.addEventListener("input",calc));
 
-  let overall=(city*cityPct+highway*highwayPct)/100;
-
-  city=Math.max(5,city);
-  highway=Math.max(6,highway);
-  overall=Math.max(6,overall);
-
-  cityOut.innerText = city.toFixed(1);
-  highwayOut.innerText = highway.toFixed(1);
-  overallOut.innerText = overall.toFixed(1);
-
-  tags.innerHTML = `
-    <span class="tag warn">⚠️ Moderate efficiency</span>
-    <span class="tag info">Calibrated Model</span>
-  `;
-}
-
-// EVENTS
-document.querySelectorAll("input,select").forEach(el=>{
-  el.addEventListener("input", calc);
-});
-
-calc();
-
+  calc();
 </script>
-
 </body>
 </html>

@@ -159,7 +159,7 @@
     /* ── Slider ──────────────────────────── */
     .split-pills {
       display: flex; justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .pill {
       display: inline-flex; align-items: center; gap: 4px;
@@ -169,26 +169,39 @@
     .pill.city    { background: #e0e7ff; color: #4338ca; }
     .pill.highway { background: #d1fae5; color: #065f46; }
 
+    /* Wrapper stacks track + thumb in the same vertical space */
+    .slider-outer {
+      position: relative;
+      height: 24px; /* thumb height so it doesn't get clipped */
+      display: flex;
+      align-items: center;
+    }
     .split-track {
-      position: relative; height: 8px;
-      border-radius: 99px; overflow: hidden; margin-bottom: 10px;
+      position: absolute;
+      left: 0; right: 0;
+      height: 8px;
+      border-radius: 99px;
+      overflow: hidden;
+      pointer-events: none; /* clicks pass through to the range input */
     }
     .split-bar-city {
       position:absolute; left:0; top:0; height:100%;
       background: linear-gradient(90deg,#818cf8,#6366f1);
-      border-radius: 99px 0 0 99px; transition: width .15s;
+      transition: width .15s;
     }
     .split-bar-hw {
       position:absolute; right:0; top:0; height:100%;
       background: linear-gradient(90deg,#34d399,#10b981);
-      border-radius: 0 99px 99px 0; transition: width .15s;
+      transition: width .15s;
     }
 
     input[type="range"] {
       -webkit-appearance: none; appearance: none;
-      width: 100%; height: 8px; border-radius: 99px;
-      background: transparent; position: relative; z-index: 1;
-      cursor: pointer; outline: none;
+      position: absolute;
+      left: 0; width: 100%; height: 24px;
+      background: transparent;
+      z-index: 2; /* sits on top of the track */
+      cursor: pointer; outline: none; margin: 0;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none; width: 20px; height: 20px;
@@ -319,11 +332,13 @@
       <span class="pill city">🏙️ City: <span id="cityShare">75</span>%</span>
       <span class="pill highway">🛣️ Highway: <span id="hwShare">25</span>%</span>
     </div>
-    <div class="split-track">
-      <div class="split-bar-city" id="barCity" style="width:75%"></div>
-      <div class="split-bar-hw"   id="barHW"   style="width:25%"></div>
+    <div class="slider-outer">
+      <div class="split-track">
+        <div class="split-bar-city" id="barCity" style="width:75%"></div>
+        <div class="split-bar-hw"   id="barHW"   style="width:25%"></div>
+      </div>
+      <input type="range" id="slider" value="75" min="0" max="100">
     </div>
-    <input type="range" id="slider" value="75" min="0" max="100">
   </div>
 
 </div>
@@ -349,17 +364,21 @@
   const tagsEl       = $("tags");
   const resultCard   = $("resultCard");
 
-  const transFactor  = { manual:1, amt:0.95, cvt:0.85, tc:0.90, dct:0.88 };
+  // CVT/DCT/AMT are efficient — no heavy penalty vs manual
+  const transFactor  = { manual:1, amt:0.97, cvt:0.97, tc:0.93, dct:0.97 };
   const weightFactor = { hatch:1.08, compactSedan:1.05, compactSUV:1, sedan:0.96, suv:0.92, luxurySedan:0.86, luxurySUV:0.80 };
   const styleFactor  = { gentle:1.1, normal:1, aggressive:0.85 };
   const acFactor     = { off:1.05, normal:0.97, max:0.88 };
 
-  function cityNA(cc,s)     { return (4.5+0.22*s-0.0015*s*s)*Math.pow(1500/cc,0.6); }
-  function hwNA(cc,s)       { return (36000/cc)/(1+0.012*s+0.00018*s*s); }
-  function hwTurbo(cc,s)    { let b=(38000/cc)/(1+0.013*s+0.0002*s*s); return b*(s<60?.90:s<75?1.05:s<90?1.12:s<105?.92:.82); }
-  function turboFactor(s)   { return s<25?1.45:s<35?1.30:s<50?1.15:s<70?1.05:s<90?1.00:s<105?1.10:1.25; }
-  function turboCityLoad(c) { return 1+(c/100)*0.25; }
-  function dieselFactor(c)  { return 1.55*(1+(c/100)*0.15); }
+  function cityNA(cc,s)        { return (4.5+0.22*s-0.0015*s*s)*Math.pow(1500/cc,0.6); }
+  // Constant raised to 72000: 1500cc at 80 km/h now gives ~15 km/l base (was ~7.7)
+  function hwNA(cc,s)          { return (72000/cc)/(1+0.012*s+0.00018*s*s); }
+  function hwTurbo(cc,s)       { let b=(74000/cc)/(1+0.013*s+0.0002*s*s); return b*(s<60?.90:s<75?1.05:s<90?1.12:s<105?.92:.82); }
+  function turboFactor(s)      { return s<25?1.45:s<35?1.30:s<50?1.15:s<70?1.05:s<90?1.00:s<105?1.10:1.25; }
+  function turboCityLoad(c)    { return 1+(c/100)*0.25; }
+  // Diesel city advantage is larger (~50%) than highway advantage (~22%)
+  function dieselCityFactor(c) { return 1.50*(1+(c/100)*0.12); }
+  function dieselHwFactor()    { return 1.22; }
 
   function zone(cs) {
     if (cs<25) return { label:"🚨 Stop-go inefficiency", cls:"bad"  };
@@ -367,8 +386,8 @@
     return             { label:"✅ Efficient cruising",   cls:"good" };
   }
 
-  function roundCC(v)      { return Math.max(800, Math.min(5000, Math.round(v/100)*100)); }
-  function round5(v,mn,mx) { return Math.max(mn, Math.min(mx, Math.round(v/5)*5)); }
+  function roundCC(v)       { return Math.max(800, Math.min(5000, Math.round(v/100)*100)); }
+  function round5(v,mn,mx)  { return Math.max(mn, Math.min(mx, Math.round(v/5)*5)); }
 
   function calc() {
     let cc   = +ccEl.value;
@@ -386,7 +405,7 @@
     let hw   = engineEl.value==="turbo" ? hwTurbo(cc,hs) : hwNA(cc,hs);
 
     if (engineEl.value==="turbo")  { city/=turboFactor(cs); city/=turboCityLoad(pct); }
-    if (engineEl.value==="diesel") { city*=dieselFactor(pct); hw*=dieselFactor(pct); }
+    if (engineEl.value==="diesel") { city*=dieselCityFactor(pct); hw*=dieselHwFactor(); }
 
     let tf=transFactor[transEl.value], wf=weightFactor[vehicleEl.value];
     let sf=styleFactor[styleEl.value], af=acFactor[acEl.value];

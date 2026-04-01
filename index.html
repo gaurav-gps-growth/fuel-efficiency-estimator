@@ -375,9 +375,11 @@
   function hwNA(cc,s)          { return (72000/cc)/(1+0.012*s+0.00018*s*s); }
   function hwTurbo(cc,s)       { let b=(74000/cc)/(1+0.013*s+0.0002*s*s); return b*(s<60?.90:s<75?1.05:s<90?1.12:s<105?.92:.82); }
   function turboFactor(s)      { return s<25?1.45:s<35?1.30:s<50?1.15:s<70?1.05:s<90?1.00:s<105?1.10:1.25; }
-  function turboCityLoad(c)    { return 1+(c/100)*0.25; }
-  // Diesel city advantage is larger (~50%) than highway advantage (~22%)
-  function dieselCityFactor(c) { return 1.50*(1+(c/100)*0.12); }
+  // Turbo city load based on speed, not split% — low speed = more spool/load penalty
+  function turboCityLoad(cs)   { return cs<30 ? 1.22 : cs<50 ? 1.12 : 1.05; }
+  // Diesel city advantage ~35% over petrol NA baseline (constant — independent of split%)
+  // Diesel highway advantage ~22% (less benefit at speed due to narrowing torque advantage)
+  function dieselCityFactor()  { return 1.35; }
   function dieselHwFactor()    { return 1.22; }
 
   function zone(cs) {
@@ -404,8 +406,8 @@
     let city = cityNA(cc,cs);
     let hw   = engineEl.value==="turbo" ? hwTurbo(cc,hs) : hwNA(cc,hs);
 
-    if (engineEl.value==="turbo")  { city/=turboFactor(cs); city/=turboCityLoad(pct); }
-    if (engineEl.value==="diesel") { city*=dieselCityFactor(pct); hw*=dieselHwFactor(); }
+    if (engineEl.value==="turbo")  { city/=turboFactor(cs); city/=turboCityLoad(cs); }
+    if (engineEl.value==="diesel") { city*=dieselCityFactor(); hw*=dieselHwFactor(); }
 
     let tf=transFactor[transEl.value], wf=weightFactor[vehicleEl.value];
     let sf=styleFactor[styleEl.value], af=acFactor[acEl.value];

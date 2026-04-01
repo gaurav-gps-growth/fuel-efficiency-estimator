@@ -2,13 +2,11 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>Fuel Efficiency Estimator</title>
 
 <style>
-
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: Arial, sans-serif;
   background: #eef1f6;
   padding: 20px;
 }
@@ -18,18 +16,13 @@ body {
   margin: auto;
 }
 
-/* ---------- RESULT CARD ---------- */
+/* RESULT CARD */
 .result-card {
-  background: linear-gradient(135deg, #4c4cff, #7a4dff);
+  background: linear-gradient(135deg,#4c4cff,#7a4dff);
   color: white;
   padding: 25px;
   border-radius: 20px;
   margin-bottom: 25px;
-}
-
-.result-title {
-  font-weight: 600;
-  opacity: 0.9;
 }
 
 .result-grid {
@@ -39,73 +32,57 @@ body {
 }
 
 .metric {
-  flex: 1;
+  flex:1;
+  text-align:center;
   background: rgba(255,255,255,0.1);
-  border-radius: 15px;
-  padding: 20px;
-  text-align: center;
+  padding:20px;
+  border-radius:15px;
 }
 
-.metric h1 {
-  font-size: 42px;
-  margin: 5px 0;
-}
+.metric h1 { font-size:40px; margin:5px 0; }
 
-.tag {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-}
-
-.tag.warn { background: #f5e6a7; color: #a66b00; }
-.tag.info { background: rgba(255,255,255,0.2); }
-
-/* ---------- SECTIONS ---------- */
+/* CARDS */
 .card {
-  background: white;
-  padding: 20px;
-  border-radius: 15px;
-  margin-bottom: 20px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+  background:white;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+  box-shadow:0 3px 12px rgba(0,0,0,0.05);
 }
 
 .section-title {
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #666;
+  font-weight:bold;
+  margin-bottom:15px;
+  color:#666;
 }
 
 .grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
 }
 
 input, select {
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  font-size: 14px;
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #ddd;
 }
 
-/* ---------- SLIDER ---------- */
-.slider-container {
-  margin-top: 10px;
+/* SLIDER */
+.slider { width:100%; }
+.split-row { display:flex; justify-content:space-between; margin-top:10px; }
+
+.tag {
+  display:inline-block;
+  padding:6px 12px;
+  border-radius:999px;
+  margin-top:10px;
+  font-size:13px;
 }
 
-.slider {
-  width: 100%;
-}
-
-.split-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-
+.warn { background:#f5e6a7; color:#a66b00; }
+.info { background:rgba(255,255,255,0.2); }
 </style>
 </head>
 
@@ -115,21 +92,21 @@ input, select {
 
 <!-- RESULT -->
 <div class="result-card">
-  <div class="result-title">⚡ ESTIMATED MILEAGE</div>
+  <div>⚡ ESTIMATED MILEAGE</div>
 
   <div class="result-grid">
     <div class="metric">
-      <div>🏙️ CITY</div>
+      CITY
       <h1 id="cityOut">0</h1>
       km/l
     </div>
     <div class="metric">
-      <div>🛣️ HIGHWAY</div>
+      HIGHWAY
       <h1 id="highwayOut">0</h1>
       km/l
     </div>
     <div class="metric">
-      <div>🔁 OVERALL</div>
+      OVERALL
       <h1 id="overallOut">0</h1>
       km/l
     </div>
@@ -140,8 +117,7 @@ input, select {
 
 <!-- ENGINE -->
 <div class="card">
-  <div class="section-title">🔧 ENGINE & TRANSMISSION</div>
-
+  <div class="section-title">ENGINE & TRANSMISSION</div>
   <div class="grid">
     <select id="engine">
       <option value="na">Petrol (NA)</option>
@@ -167,8 +143,7 @@ input, select {
 
 <!-- DRIVING -->
 <div class="card">
-  <div class="section-title">🎮 DRIVING CONDITIONS</div>
-
+  <div class="section-title">DRIVING CONDITIONS</div>
   <div class="grid">
     <select id="style">
       <option value="normal">Normal</option>
@@ -189,19 +164,38 @@ input, select {
 
 <!-- SPLIT -->
 <div class="card">
-  <div class="section-title">📊 DRIVING SPLIT</div>
+  <div class="section-title">DRIVING SPLIT</div>
 
   <input type="range" id="slider" class="slider" value="75">
 
   <div class="split-row">
-    <div>🏙️ City: <b id="cityShare">75</b>%</div>
-    <div>🛣️ Highway: <b id="highwayShare">25</b>%</div>
+    <div>City: <b id="cityShare">75</b>%</div>
+    <div>Highway: <b id="highwayShare">25</b>%</div>
   </div>
 </div>
 
 </div>
 
 <script>
+
+// ELEMENTS
+const engine = document.getElementById("engine");
+const ccInput = document.getElementById("cc");
+const trans = document.getElementById("trans");
+const vehicle = document.getElementById("vehicle");
+const style = document.getElementById("style");
+const ac = document.getElementById("ac");
+const citySpeed = document.getElementById("citySpeed");
+const highwaySpeed = document.getElementById("highwaySpeed");
+const slider = document.getElementById("slider");
+
+const cityOut = document.getElementById("cityOut");
+const highwayOut = document.getElementById("highwayOut");
+const overallOut = document.getElementById("overallOut");
+
+const cityShareEl = document.getElementById("cityShare");
+const highwayShareEl = document.getElementById("highwayShare");
+const tags = document.getElementById("tags");
 
 // FACTORS
 const transFactor = {manual:1, cvt:0.88, dct:0.88};
@@ -243,14 +237,15 @@ function dieselFactor(cs,s){
 // MAIN
 function calc(){
 
-  let cc=+cc.value;
-  let cs=+citySpeed.value;
-  let hs=+highwaySpeed.value;
-  let cityPct=+slider.value;
-  let highwayPct=100-cityPct;
+  let cc = +ccInput.value;
+  let cs = +citySpeed.value;
+  let hs = +highwaySpeed.value;
 
-  cityShare.innerText=cityPct;
-  highwayShare.innerText=highwayPct;
+  let cityPct = +slider.value;
+  let highwayPct = 100 - cityPct;
+
+  cityShareEl.innerText = cityPct;
+  highwayShareEl.innerText = highwayPct;
 
   let city = cityNA(cc,cs);
   let highway = engine.value==="turbo" ? highwayTurbo(cc,hs) : highwayNA(cc,hs);
@@ -274,9 +269,9 @@ function calc(){
   highway=Math.max(6,highway);
   overall=Math.max(6,overall);
 
-  cityOut.innerText=city.toFixed(1);
-  highwayOut.innerText=highway.toFixed(1);
-  overallOut.innerText=overall.toFixed(1);
+  cityOut.innerText = city.toFixed(1);
+  highwayOut.innerText = highway.toFixed(1);
+  overallOut.innerText = overall.toFixed(1);
 
   tags.innerHTML = `
     <span class="tag warn">⚠️ Moderate efficiency</span>
@@ -284,7 +279,10 @@ function calc(){
   `;
 }
 
-document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",calc));
+// EVENTS
+document.querySelectorAll("input,select").forEach(el=>{
+  el.addEventListener("input", calc);
+});
 
 calc();
 

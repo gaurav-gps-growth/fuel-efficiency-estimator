@@ -494,68 +494,99 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Calibration v2 — April 2026
-  // Based on owner-reported real-world data (NOT ARAI lab figures):
-  //   Swift 1.2 MT · Creta 1.5 NA MT/CVT · Creta 1.5D MT
-  //   Nexon 1.2T AMT · Scorpio 2.2D MT · Honda City 1.5 MT
+  // Calibration v3 — April 2026
+  // Turbo petrol formulas rebuilt from scratch using owner-reported data:
+  //   Nexon 1.2T MT (city 11-12, hw ~15), Nexon AMT (city 10-11, hw ~12)
+  //   Venue/Sonet 1.0T iMT (city 11-12, hw 15-16), DCT (city 10-12, hw 16.5)
+  //   Creta 1.5T DCT (city 10-12, hw 14.5-17), Brezza 1.5T MT (city 10.5, hw 15.9)
+  //   Kushaq 1.0T MT (city 11.8, hw 14.3), Kushaq AT (city 8.5, hw 12.4)
+  //   XUV 3XO 1.2T MT (city 10.4, hw 14.9)
+  // NA & Diesel formulas unchanged from v2 (already calibrated).
   // Sources: Team-BHP, Autocar India, CarDekho, ZigWheels, V3Cars
   // ─────────────────────────────────────────────────────────────────
 
-  // Transmission factors (vs manual = 1.0)
-  // AMT ≈ 3% below manual; CVT ≈ 3% below; TC ≈ 2% below; DCT ≈ 1% above
-  const transmissionFactor = t => ({ manual:1.00, amt:0.97, cvt:0.97, tc:0.98, dct:1.01 }[t]);
+  // City transmission factors (vs manual = 1.0)
+  // Turbo city: TC has severe penalty (launch fuelling, rich stop-start cycles)
+  //   Kushaq data: MT 11.8 vs AT 8.5 → TC ≈ 0.72× in city for turbo
+  // DCT turbo city: ≈ 0.95× (Sonet DCT city ≥ iMT in real-world logs)
+  function transCityFactor(t, engine) {
+    if (engine === 'turbo') {
+      return { manual:1.00, amt:0.93, cvt:0.94, tc:0.72, dct:0.95 }[t] ?? 1.0;
+    }
+    return { manual:1.00, amt:0.95, cvt:0.96, tc:0.90, dct:0.99 }[t] ?? 1.0;
+  }
 
-  // Body/aero factors — CC scaling handles displacement difference;
-  // these cover weight, drag, rolling resistance
+  // Highway transmission factors (vs manual = 1.0)
+  // Turbo TC carries a bigger highway penalty (Kushaq AT hw 12.4 vs MT 14.3)
+  // All other differences narrow at steady-state cruising speeds
+  function transHwFactor(t, engine) {
+    if (engine === 'turbo' && t === 'tc') return 0.82;
+    return { manual:1.00, amt:0.98, cvt:0.97, tc:0.97, dct:1.01 }[t] ?? 1.0;
+  }
+
+  // Body/aero + weight factors
   const weightFactor = t => ({
     hatch:1.04, compactSedan:1.02, compactSUV:1.00,
     sedan:0.98, suv:0.90, luxurySedan:0.85, luxurySUV:0.78
   }[t]);
 
-  // Style: aggressive driving = +23% fuel use (ORNL research)
+  // Style: aggressive driving ≈ 25% more fuel (ORNL + Indian driving patterns)
   const styleFactor = t => ({ gentle:1.10, normal:1.00, aggressive:0.81 }[t]);
 
-  // AC: city penalty 5–15%, highway 5–10% (Indian summer conditions)
+  // AC penalty (Indian summer conditions — city has higher compressor load)
   const acFactor = t => ({ off:1.04, normal:0.95, max:0.87 }[t]);
 
-  // ── City formula ─────────────────────────────────────────────────
+  // ── NA Petrol city ───────────────────────────────────────────────
   // Reference: 1500cc NA Petrol → ~13 km/l city at 40 km/h (Creta 1.5 MT)
-  // Peak at ~56 km/h; quadratic decay above that from stop-start losses
+  // Peak at ~56 km/h; quadratic decay from stop-start losses
   function cityNA(cc, s) {
     let base = 1.07 + 0.479*s - 0.00426*s*s;
     return base * Math.pow(1500/cc, 0.6);
   }
 
-  // ── Highway formula ──────────────────────────────────────────────
-  // Uses 1/√cc scaling: at highway speeds, aerodynamics/gearing matter
-  // more than displacement, so engine-size gaps shrink vs city
-  // Peak at ~73 km/h (real-world Indian highway sweet spot)
+  // ── NA Petrol highway ────────────────────────────────────────────
+  // 1/√cc scaling: at highway speeds aero/gearing dominate over displacement
+  // Peak at ~73 km/h (Indian highway sweet spot)
   function highwayNA(cc, s) {
     return 305 / Math.sqrt(cc) / (1 - 0.01452*s + 0.0001*s*s);
   }
 
-  // ── Turbo highway ────────────────────────────────────────────────
-  // Turbos match NA at optimal RPM band (75–90 km/h) but suffer at
-  // low highway speeds (under-boost) and very high speeds (over-fuelling)
-  function highwayTurbo(cc, s) {
-    let base = 305 / Math.sqrt(cc) / (1 - 0.01452*s + 0.0001*s*s);
-    let f = s<60 ? 0.82 : s<75 ? 0.90 : s<90 ? 0.93 : s<105 ? 0.85 : 0.78;
-    return base * f;
+  // ── Turbo Petrol city ────────────────────────────────────────────
+  // Direct calibration — NOT derived from NA formula.
+  // Reference: 1200cc turbo MT, 40 km/h → 11.5 km/l city (Nexon 1.2T)
+  //   Pre-AC base: 11.5 / 0.95 = 12.1 km/l
+  // CC scaling exp 0.35: turbo boost compresses displacement efficiency gains
+  // Speed curve: turbo struggles in stop-go (boost lag, richer launch fuelling)
+  function cityTurbo(cc, s) {
+    const base = 12.1 * Math.pow(1200/cc, 0.35);
+    let sf;
+    if      (s <= 15) sf = 0.78;
+    else if (s <= 30) sf = 0.78 + (s-15)*(0.93-0.78)/15;
+    else if (s <= 45) sf = 0.93 + (s-30)*(1.00-0.93)/15;
+    else if (s <= 60) sf = 1.00 + (s-45)*(1.03-1.00)/15;
+    else              sf = 1.03;
+    return base * sf;
   }
 
-  // Turbo city penalty: low-speed boost lag + richer fuelling
-  function turboFactor(s) {
-    return s<25?1.35 : s<35?1.20 : s<50?1.10 : s<70?1.02 : 1.00;
-  }
-  // Additional city load penalty based on city speed (not split %)
-  function turboCityLoad(cs) {
-    return cs<30 ? 1.12 : cs<50 ? 1.06 : 1.02;
+  // ── Turbo Petrol highway ─────────────────────────────────────────
+  // Reference: 1200cc turbo MT, 80 km/h → 15 km/l highway (Nexon 1.2T)
+  //   Pre-AC base: 15 / 0.95 = 15.8 km/l
+  // CC scaling exp 0.30: highway efficiency gap between displacements narrows
+  // Speed curve: turbo peaks at 75-90 km/h, falls off at high speeds
+  function highwayTurbo(cc, s) {
+    const base = 15.8 * Math.pow(1200/cc, 0.30);
+    let sf;
+    if      (s <= 60)  sf = 0.88;
+    else if (s <= 80)  sf = 0.88 + (s-60)*(1.00-0.88)/20;
+    else if (s <= 100) sf = 1.00 - (s-80)*0.03/20;
+    else if (s <= 120) sf = 0.97 - (s-100)*0.10/20;
+    else               sf = 0.87 - (s-120)*0.09/20;
+    return base * sf;
   }
 
   // ── Diesel multipliers ───────────────────────────────────────────
   // Diesel torque advantage: ~35% in city (low-RPM efficiency),
   // ~22% on highway (advantage narrows at sustained high RPM)
-  // Both are CONSTANTS — independent of city/highway split
   function dieselCityFactor() { return 1.35; }
   function dieselHwFactor()   { return 1.22; }
 
@@ -569,43 +600,42 @@
   // --- Main ---
   function calculate() {
     updateSlider();
-    let cc     = +ccInput.value;
-    let engine = document.getElementById("engineType").value;
-    let trans  = transmissionFactor(document.getElementById("transmission").value);
-    let weight = weightFactor(document.getElementById("vehicle").value);
-    let style  = styleFactor(document.getElementById("style").value);
-    let ac     = acFactor(document.getElementById("ac").value);
-    let cs     = +citySpeedInput.value;
-    let hs     = +highwaySpeedInput.value;
+    const cc     = +ccInput.value;
+    const engine = document.getElementById("engineType").value;
+    const trans  = document.getElementById("transmission").value;
+    const weight = weightFactor(document.getElementById("vehicle").value);
+    const style  = styleFactor(document.getElementById("style").value);
+    const ac     = acFactor(document.getElementById("ac").value);
+    const cs     = +citySpeedInput.value;
+    const hs     = +highwaySpeedInput.value;
 
-    let city    = cityNA(cc, cs);
-    let highway = (engine==="turbo") ? highwayTurbo(cc, hs) : highwayNA(cc, hs);
+    let city, highway;
 
-    // Turbo city penalty (uses city speed, not split %)
-    if (engine==="turbo") {
-      city /= turboFactor(cs);
-      city /= turboCityLoad(cs);
+    if (engine === 'turbo') {
+      city    = cityTurbo(cc, cs);
+      highway = highwayTurbo(cc, hs);
+    } else {
+      city    = cityNA(cc, cs);
+      highway = highwayNA(cc, hs);
     }
 
-    // Diesel: constant factors — split slider only affects Overall
-    if (engine==="diesel") {
+    // Diesel: constant boosts applied before shared multipliers
+    if (engine === 'diesel') {
       city    *= dieselCityFactor();
       highway *= dieselHwFactor();
     }
 
-    city    *= trans * weight * style * ac;
-    highway *= trans * (0.7 + 0.3*weight) * style * ac;
+    // City and highway use separate transmission factors
+    // (turbo TC/DCT penalties are much larger in city than on highway)
+    city    *= transCityFactor(trans, engine) * weight * style * ac;
+    highway *= transHwFactor(trans, engine) * (0.7 + 0.3*weight) * style * ac;
 
-    // Overall is pure weighted average of fixed city/highway values
-    let overall = (city*cityShare + highway*highwayShare) / 100;
+    // Overall = weighted average of fixed city/highway estimates
+    const overall = (city*cityShare + highway*highwayShare) / 100;
 
-    city    = Math.max(4, city);
-    highway = Math.max(6, highway);
-    overall = Math.max(5, overall);
-
-    document.getElementById("r-city").innerText    = city.toFixed(1);
-    document.getElementById("r-highway").innerText = highway.toFixed(1);
-    document.getElementById("r-overall").innerText = overall.toFixed(1);
+    document.getElementById("r-city").innerText    = Math.max(4, city).toFixed(1);
+    document.getElementById("r-highway").innerText = Math.max(6, highway).toFixed(1);
+    document.getElementById("r-overall").innerText = Math.max(5, overall).toFixed(1);
 
     const zone = zoneTag(cs);
     const zoneEl = document.getElementById("r-zone");
